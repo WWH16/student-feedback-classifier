@@ -3,6 +3,61 @@
 {% block title %}Single Feedback - Student Feedback Classifier{% endblock %}
 
 {% block content %}
-<h1>Student Feedback Classifier</h1>
-<p>Single feedback classification placeholder.</p>
+<div class="sheet-intro">
+    <h1>Single feedback</h1>
+    <p>Write one student comment in box A. The classifier marks one sentiment in row B.</p>
+</div>
+
+<form id="classify-form" class="mark-form" action="{{ url_for('api_classify') }}" method="post" novalidate>
+    <section class="field" aria-labelledby="field-a">
+        <div class="field-head">
+            <span class="field-letter" aria-hidden="true">A</span>
+            <h2 id="field-a"><label for="feedback">Written comment</label></h2>
+        </div>
+
+        <div class="comment-box">
+            <textarea id="feedback" name="text" rows="7" maxlength="{{ max_chars }}"
+                      aria-describedby="char-count form-error" spellcheck="true"
+                      placeholder="Type or paste one piece of student feedback"></textarea>
+        </div>
+
+        <div class="field-foot">
+            <p id="form-error" class="form-error" role="alert"></p>
+            <p class="char-count"><span id="char-count" data-max="{{ max_chars }}">0</span> / {{ max_chars }}</p>
+        </div>
+    </section>
+
+    <div class="actions">
+        <button type="button" id="erase" class="btn-erase" disabled>Erase</button>
+        <button type="submit" id="mark" class="btn-mark">Mark sentiment</button>
+    </div>
+
+    <section class="field" aria-labelledby="field-b">
+        <div class="field-head">
+            <span class="field-letter" aria-hidden="true">B</span>
+            <h2 id="field-b">Sentiment</h2>
+            <span class="field-note">Marked by classifier</span>
+        </div>
+
+        <ol class="bubbles" id="bubbles">
+            {% for letter, label in [('A', 'Positive'), ('B', 'Neutral'), ('C', 'Negative')] %}
+            <li class="bubble-item" data-label="{{ label }}">
+                <span class="bubble" aria-hidden="true">
+                    <span class="bubble-letter">{{ letter }}</span>
+                    <svg class="pencil" viewBox="0 0 60 38" focusable="false">
+                        <clipPath id="bubble-clip-{{ loop.index }}"><ellipse cx="30" cy="19" rx="25.5" ry="15.2"/></clipPath>
+                        <g clip-path="url(#bubble-clip-{{ loop.index }})">
+                            <path class="stroke stroke-1" pathLength="1" d="M7 13 L50 7 L8 19 L54 13 L7 25 L53 20 L9 31 L51 27 L14 35 L45 34"/>
+                            <path class="stroke stroke-2" pathLength="1" d="M12 9 L47 11 L6 22 L52 17 L10 28 L50 25 L16 33"/>
+                        </g>
+                    </svg>
+                </span>
+                <span class="bubble-label">{{ label }}</span>
+            </li>
+            {% endfor %}
+        </ol>
+
+        <p id="result" class="result-line" aria-live="polite" data-state="empty">No mark yet.</p>
+    </section>
+</form>
 {% endblock %}

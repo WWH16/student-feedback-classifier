@@ -4,20 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Student Feedback Classifier{% endblock %}</title>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/archivo-latin-var.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <header>
-        <nav>
-            <a href="{{ url_for('index') }}">Single Feedback</a> |
-            <a href="{{ url_for('batch') }}">Batch Classification</a>
-        </nav>
-    </header>
+    <div class="sheet">
+        <div class="timing-marks" aria-hidden="true"></div>
 
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+        <header class="sheet-head">
+            <div class="reg-row" aria-hidden="true">
+                <span class="reg-mark"></span>
+                <span class="reg-mark"></span>
+            </div>
+            <div class="head-bar">
+                <a class="form-name" href="{{ url_for('index') }}">Student Feedback Classifier</a>
+                <span class="form-id">Research prototype</span>
+            </div>
+            <nav class="tabs" aria-label="Classification mode">
+                <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Single feedback</a>
+                <a href="{{ url_for('batch') }}" {% if request.endpoint == 'batch' %}aria-current="page"{% endif %}>Batch (CSV)</a>
+            </nav>
+        </header>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+        <main class="sheet-body">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="sheet-foot">
+            <span class="reg-mark" aria-hidden="true"></span>
+            <p class="fine-print">
+                {% if not model_ready %}<span class="notice">Placeholder classifier active &middot; not the trained study model</span>{% endif %}
+                <span>Mining Student Feedback Using Classification Techniques &middot; classes: Positive, Neutral, Negative</span>
+            </p>
+            <span class="reg-mark" aria-hidden="true"></span>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </body>
 </html>
