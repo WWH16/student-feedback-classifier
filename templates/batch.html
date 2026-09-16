@@ -1,10 +1,103 @@
 {% extends "base.html" %}
 
 {% block title %}Batch Classification - Student Feedback Classifier{% endblock %}
+{% block body_class %}is-wide{% endblock %}
 
 {% block content %}
 <div class="sheet-intro">
     <h1>Batch feedback</h1>
-    <p>CSV upload and bulk classification are not built yet. Use single feedback for now.</p>
+    <p>Upload a CSV of student comments in box A, confirm the comment column in box B, and the classifier marks every row.</p>
 </div>
+
+<form id="batch-form" class="mark-form" action="{{ url_for('api_batch') }}"
+      data-inspect="{{ url_for('api_batch_inspect') }}" data-preview-rows="{{ preview_rows }}" novalidate>
+    <section class="field" aria-labelledby="field-a">
+        <div class="field-head">
+            <span class="field-letter" aria-hidden="true">A</span>
+            <h2 id="field-a">CSV file</h2>
+            <span class="field-note">Up to {{ max_upload_mb }} MB · {{ '{:,}'.format(max_rows) }} rows</span>
+        </div>
+
+        <div class="drop-box" id="drop-box">
+            <input type="file" id="csv-file" name="file" accept=".csv,text/csv" class="visually-hidden"
+                   aria-describedby="file-status batch-error">
+            <label for="csv-file" class="btn-file">Choose CSV</label>
+            <p class="drop-hint" id="file-status">
+                <span class="drop-desk">or drop the file on this box.</span>
+                <span class="drop-empty">No file chosen.</span>
+            </p>
+        </div>
+    </section>
+
+    <section class="field" aria-labelledby="field-b">
+        <div class="field-head">
+            <span class="field-letter" aria-hidden="true">B</span>
+            <h2 id="field-b"><label for="column">Comment column</label></h2>
+        </div>
+
+        <div class="column-row">
+            <div class="select-box">
+                <select id="column" name="column" disabled aria-describedby="column-note">
+                    <option value="">Choose a file first</option>
+                </select>
+            </div>
+            <p class="column-note" id="column-note"></p>
+        </div>
+    </section>
+
+    <p id="batch-error" class="form-error" role="alert"></p>
+
+    <div class="actions">
+        <button type="button" id="batch-reset" class="btn-erase" disabled>Erase</button>
+        <button type="submit" id="batch-mark" class="btn-mark" disabled>Mark all rows</button>
+    </div>
+
+    <section class="field results" id="results" aria-labelledby="field-c" hidden>
+        <div class="field-head">
+            <span class="field-letter" aria-hidden="true">C</span>
+            <h2 id="field-c" tabindex="-1">Results</h2>
+            <span class="field-note" id="results-note" aria-live="polite"></span>
+        </div>
+
+        <p class="result-line" id="batch-placeholder" hidden>
+            <span class="note">Placeholder rule, not the trained model. Add models/svm_model.pkl and models/tfidf_vectorizer.pkl to use the study model.</span>
+        </p>
+
+        <div class="results-top">
+            <div class="tally" aria-labelledby="tally-title">
+                <h3 class="timing-title" id="tally-title">Sentiment tally <span>share of classified rows</span></h3>
+                <ol class="tally-list" id="tally">
+                    {% for letter, label in [('A', 'Positive'), ('B', 'Neutral'), ('C', 'Negative')] %}
+                    <li class="tally-row" data-tone="{{ label|lower }}" data-label="{{ label }}">
+                        <span class="tally-name"><span class="dot" aria-hidden="true"></span>{{ label }}</span>
+                        <span class="tally-bar" aria-hidden="true"><span class="tally-fill"></span></span>
+                        <span class="tally-num"><strong data-count>0</strong> <span data-share>0%</span></span>
+                    </li>
+                    {% endfor %}
+                </ol>
+                <p class="tally-skip" id="tally-skip" hidden></p>
+            </div>
+
+            {% with timing_id='batch', per_comment=True %}{% include "_timing.html" %}{% endwith %}
+        </div>
+
+        <div class="table-head">
+            <h3 class="timing-title" id="table-title">Marked rows <span id="table-count"></span></h3>
+            <button type="button" id="download" class="btn-erase btn-download">Download CSV</button>
+        </div>
+
+        <div class="table-wrap" role="region" aria-labelledby="table-title" tabindex="0">
+            <table class="rows-table">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-row">Row</th>
+                        <th scope="col">Comment</th>
+                        <th scope="col" class="col-label">Sentiment</th>
+                    </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+            </table>
+        </div>
+    </section>
+</form>
 {% endblock %}

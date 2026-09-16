@@ -1,0 +1,28 @@
+{# Server-side processing time. Filled by main.js from the API "timing" object. #}
+<section class="timing" data-timing hidden aria-labelledby="timing-title-{{ timing_id|default('single') }}">
+    <h3 class="timing-title" id="timing-title-{{ timing_id|default('single') }}">Processing time <span>measured on the server</span></h3>
+    <dl class="timing-grid">
+        <div class="timing-cell">
+            <dt>Preprocessing</dt>
+            <dd data-time="preprocess_ms">—</dd>
+            <dd class="timing-hint">Clean, tokenize, drop stopwords</dd>
+        </div>
+        <div class="timing-cell">
+            <dt>Model</dt>
+            <dd data-time="model_ms">—</dd>
+            <dd class="timing-hint">TF-IDF transform + SVM predict</dd>
+        </div>
+        <div class="timing-cell is-total">
+            <dt>Total</dt>
+            <dd data-time="total_ms">—</dd>
+            <dd class="timing-hint">Preprocessing + model</dd>
+        </div>
+        {% if per_comment %}
+        <div class="timing-cell">
+            <dt>Per comment</dt>
+            <dd data-time="per_comment_ms">—</dd>
+            <dd class="timing-hint">Total ÷ classified comments</dd>
+        </div>
+        {% endif %}
+    </dl>
+</section>

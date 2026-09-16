@@ -24,7 +24,7 @@ Applies a specific trained SVM + TF-IDF pipeline (produced in a separate researc
 
 ## Operating Context
 
-Local/research-tool usage, not a public multi-tenant deploy. Single feedback flow: user types or pastes one feedback text, submits, sees predicted sentiment class. Batch flow (separate surface, not this build): CSV upload, bulk classification, results table, visualization, CSV export.
+Local/research-tool usage, not a public multi-tenant deploy. Single feedback flow: user types or pastes one feedback text, submits, sees predicted sentiment class. Batch flow (`/batch`): CSV upload, comment column choice, bulk classification, sentiment tally, results table, CSV export.
 
 ## Capabilities and Constraints
 
@@ -32,7 +32,9 @@ Local/research-tool usage, not a public multi-tenant deploy. Single feedback flo
 - If the artifacts are missing, the backend falls back to a keyword placeholder and the UI labels it as not the trained model.
 - The model is a linear `SVC` without probability estimates, so there is no real confidence score to show.
 - Input that is empty after preprocessing (only stopwords or punctuation) is rejected with an error, not classified.
-- Batch classification is not built yet.
+- Batch classification is built. Rows that are blank or empty after preprocessing are reported as not classified.
+- Both flows show server-side processing time (preprocessing, model, total; batch adds per comment). These are measured timings, not accuracy claims.
+- Sentiment colors: Positive green, Neutral slate, Negative red; form ink is deep blue so red only signals Negative or errors. Color is always paired with a text label.
 - Sentiment classes are fixed: Positive, Neutral, Negative.
 
 ## Evidence on Hand

@@ -8,6 +8,11 @@ When the model files are missing, a placeholder keyword rule stands in so the UI
 can still be demonstrated. The placeholder is NOT the research model and must never be
 reported as its output.
 
+Every result carries server-side timings in milliseconds:
+    - preprocess_ms: text cleaning (services.preprocessing)
+    - model_ms:      TF-IDF transform + SVM predict (or the placeholder rule)
+    - total_ms:      preprocess_ms + model_ms
+
 Expected model files:
     - models/svm_model.pkl        (SVC, classes -1 / 0 / 1)
     - models/tfidf_vectorizer.pkl (TfidfVectorizer fitted on preprocessed text)
@@ -15,10 +20,11 @@ Expected model files:
 
 import re
 from pathlib import Path
+from time import perf_counter
 
 import joblib
 
-from services.preprocessing import preprocess
+from services.preprocessing import ensure_nltk_data, preprocess
 
 LABELS = ("Positive", "Neutral", "Negative")
 
@@ -42,6 +48,10 @@ _model = None
 _vectorizer = None
 
 
+class EmptyAfterPreprocessing(ValueError):
+    """Raised when no words remain after preprocessing, so the model has nothing to judge."""
+
+
 def model_available():
     return MODEL_PATH.exists() and VECTORIZER_PATH.exists()
 
@@ -54,19 +64,16 @@ def _load_artifacts():
     return _model, _vectorizer
 
 
-class EmptyAfterPreprocessing(ValueError):
-    """Raised when no words remain after preprocessing, so the model has nothing to judge."""
+def warm_up():
+    """Load model files and NLTK data up front so the first timing is not inflated by disk loads."""
+    ensure_nltk_data()
+    preprocess("warm up")
+    if model_available():
+        _load_artifacts()
 
 
-def _model_predict(text):
-    model, vectorizer = _load_artifacts()
-    cleaned = preprocess(text)
-    if not cleaned:
-        # An empty TF-IDF vector would only return the SVM's intercept bias, not a real judgement.
-        raise EmptyAfterPreprocessing
-    features = vectorizer.transform([cleaned])
-    prediction = int(model.predict(features)[0])
-    return CLASS_TO_LABEL[prediction]
+def _ms(start, end):
+    return round((end - start) * 1000, 3)
 
 
 def _placeholder_predict(text):
@@ -79,8 +86,65 @@ def _placeholder_predict(text):
     return "Neutral"
 
 
-def classify(text):
-    """Return {"label": one of LABELS, "placeholder": bool}."""
+def _predict_many(raw_texts, cleaned_texts):
+    """Classify non-empty cleaned texts in one call. Returns labels in the same order."""
+    if not cleaned_texts:
+        return []
     if model_available():
-        return {"label": _model_predict(text), "placeholder": False}
-    return {"label": _placeholder_predict(text), "placeholder": True}
+        model, vectorizer = _load_artifacts()
+        predictions = model.predict(vectorizer.transform(cleaned_texts))
+        return [CLASS_TO_LABEL[int(p)] for p in predictions]
+    return [_placeholder_predict(text) for text in raw_texts]
+
+
+def classify(text):
+    """Return {"label", "placeholder", "timing"} for one comment."""
+    start = perf_counter()
+    cleaned = preprocess(text)
+    preprocessed = perf_counter()
+    if not cleaned:
+        # An empty TF-IDF vector would only return the SVM's intercept bias, not a real judgement.
+        raise EmptyAfterPreprocessing
+    label = _predict_many([text], [cleaned])[0]
+    done = perf_counter()
+    return {
+        "label": label,
+        "placeholder": not model_available(),
+        "timing": {
+            "preprocess_ms": _ms(start, preprocessed),
+            "model_ms": _ms(preprocessed, done),
+            "total_ms": _ms(start, done),
+        },
+    }
+
+
+def classify_batch(texts):
+    """
+    Classify many comments at once.
+
+    Returns {"labels", "placeholder", "timing"}. labels has one entry per input text:
+    a sentiment label, or None when the comment is blank or empty after preprocessing.
+    """
+    start = perf_counter()
+    cleaned = [preprocess(text) if text else "" for text in texts]
+    preprocessed = perf_counter()
+
+    keep = [i for i, value in enumerate(cleaned) if value]
+    predicted = _predict_many([texts[i] for i in keep], [cleaned[i] for i in keep])
+    done = perf_counter()
+
+    labels = [None] * len(texts)
+    for i, label in zip(keep, predicted):
+        labels[i] = label
+
+    total = _ms(start, done)
+    return {
+        "labels": labels,
+        "placeholder": not model_available(),
+        "timing": {
+            "preprocess_ms": _ms(start, preprocessed),
+            "model_ms": _ms(preprocessed, done),
+            "total_ms": total,
+            "per_comment_ms": round(total / len(keep), 4) if keep else None,
+        },
+    }

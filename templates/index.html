@@ -41,7 +41,7 @@
 
         <ol class="bubbles" id="bubbles">
             {% for letter, label in [('A', 'Positive'), ('B', 'Neutral'), ('C', 'Negative')] %}
-            <li class="bubble-item" data-label="{{ label }}">
+            <li class="bubble-item" data-label="{{ label }}" data-tone="{{ label|lower }}">
                 <span class="bubble" aria-hidden="true">
                     <span class="bubble-letter">{{ letter }}</span>
                     <svg class="pencil" viewBox="0 0 60 38" focusable="false">
@@ -58,6 +58,8 @@
         </ol>
 
         <p id="result" class="result-line" aria-live="polite" data-state="empty">No mark yet.</p>
+
+        {% include "_timing.html" %}
     </section>
 </form>
 {% endblock %}
