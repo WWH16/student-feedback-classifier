@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, render_template, request
 
-from services.classifier import classify, model_available
+from services.classifier import EmptyAfterPreprocessing, classify, model_available
 
 app = Flask(__name__)
 
@@ -30,7 +30,10 @@ def api_classify():
         return jsonify(error='Write a comment first. The sheet is blank.'), 400
     if len(text) > MAX_FEEDBACK_CHARS:
         return jsonify(error=f'Comment is too long. Keep it under {MAX_FEEDBACK_CHARS} characters.'), 400
-    return jsonify(classify(text))
+    try:
+        return jsonify(classify(text))
+    except EmptyAfterPreprocessing:
+        return jsonify(error='No words left to classify after cleaning. Write a comment with real words.'), 400
 
 
 if __name__ == '__main__':

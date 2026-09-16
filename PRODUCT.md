@@ -28,17 +28,20 @@ Local/research-tool usage, not a public multi-tenant deploy. Single feedback flo
 
 ## Capabilities and Constraints
 
-- Trained model artifacts (`models/svm_model.pkl`, `models/tfidf_vectorizer.pkl`) and preprocessing pipeline are not yet provided; `services/classifier.py` and `services/preprocessing.py` are stubs.
-- Decision: Single Feedback backend returns a stubbed/mock classification for now so the full submit -> result UI flow is demoable end to end. Swap in real model loading later without changing the UI contract.
+- Single Feedback backend uses the trained model artifacts (`models/svm_model.pkl`, `models/tfidf_vectorizer.pkl`) and the training preprocessing pipeline (`services/preprocessing.py`). The artifacts are git-ignored and must be copied in locally.
+- If the artifacts are missing, the backend falls back to a keyword placeholder and the UI labels it as not the trained model.
+- The model is a linear `SVC` without probability estimates, so there is no real confidence score to show.
+- Input that is empty after preprocessing (only stopwords or punctuation) is rejected with an error, not classified.
+- Batch classification is not built yet.
 - Sentiment classes are fixed: Positive, Neutral, Negative.
 
 ## Evidence on Hand
 
-No real classification examples, datasets, or trained model outputs on hand yet. Do not fabricate sample feedback text, accuracy numbers, or model metrics anywhere in the UI.
+The trained model is on hand, but no accuracy numbers or evaluation metrics are recorded in this repo. Do not fabricate sample feedback text, accuracy numbers, or model metrics anywhere in the UI.
 
 ## Product Principles
 
 1. Research-tool clarity over marketing polish — the interface exists to demonstrate a classification result clearly, not to persuade.
 2. Single feedback flow must stay fast: type/paste, submit, see result, repeat.
 3. UI must not imply the model is production-grade or validated beyond the study; no fabricated confidence/accuracy claims.
-4. Keep the stub-vs-real-model swap invisible to the UI layer — the frontend contract (input text -> {label, maybe score}) must not change when the real model lands.
+4. Keep the stub-vs-real-model swap invisible to the UI layer — the frontend contract (input text -> {label, placeholder}) must stay stable.
