@@ -130,10 +130,6 @@ def api_batch():
     counts = {label: labels.count(label) for label in LABELS}
     skipped = labels.count(None)
 
-    output = frame.copy()
-    output['predicted_sentiment'] = [label or '' for label in labels]
-    csv_text = output.to_csv(index=False)
-
     preview = [
         {'row': i + 1, 'comment': texts[i], 'label': labels[i]}
         for i in range(min(len(texts), PREVIEW_ROWS))
@@ -146,7 +142,6 @@ def api_batch():
         skipped=skipped,
         counts=counts,
         preview=preview,
-        csv=csv_text,
         placeholder=result['placeholder'],
         timing=result['timing'],
     )

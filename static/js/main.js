@@ -232,13 +232,11 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
     const resultsHeading = document.getElementById('field-c');
     const tableCount = document.getElementById('table-count');
     const rowsBody = document.getElementById('rows');
-    const downloadButton = document.getElementById('download');
     const previewRows = Number(form.dataset.previewRows);
     const initialStatus = fileStatus.innerHTML;
     const numberFormat = new Intl.NumberFormat();
 
     let file = null;
-    let csvText = '';
     let pending = null;
 
     function setError(message) {
@@ -269,7 +267,6 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
         results.classList.remove('is-shown');
         setReveal([results], null);
         rowsBody.innerHTML = '';
-        csvText = '';
         fillTiming(timing, null);
     }
 
@@ -354,7 +351,7 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
 
         const shown = Math.min(data.rows, previewRows);
         tableCount.textContent = shown < data.rows
-            ? `first ${numberFormat.format(shown)} of ${numberFormat.format(data.rows)} · download for all`
+            ? `first ${numberFormat.format(shown)} of ${numberFormat.format(data.rows)}`
             : `${numberFormat.format(data.rows)} rows`;
 
         rowsBody.innerHTML = data.preview.map((row) => {
@@ -365,7 +362,6 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
             return `<tr><td class="col-row" data-cell="Row">${row.row}</td><td class="col-comment" data-cell="Comment">${comment}</td><td class="col-label" data-cell="Sentiment">${label}</td></tr>`;
         }).join('');
 
-        csvText = data.csv;
         results.classList.remove('is-shown');
         setReveal([results], 'pending');
         results.hidden = false;
@@ -441,19 +437,6 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
                 setBusy(false, 'Mark all rows');
             }
         }
-    });
-
-    downloadButton.addEventListener('click', () => {
-        if (!csvText) return;
-        const blob = new Blob(['﻿', csvText], { type: 'text/csv;charset=utf-8' });
-        const link = document.createElement('a');
-        const base = file ? file.name.replace(/\.csv$/i, '') : 'feedback';
-        link.href = URL.createObjectURL(blob);
-        link.download = `${base}_classified.csv`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     });
 
     setBusy(false, 'Mark all rows');

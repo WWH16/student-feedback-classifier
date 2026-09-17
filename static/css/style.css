@@ -1221,10 +1221,6 @@ body {
         min-width: 0;
     }
 
-    .table-head .btn-download {
-        width: 100%;
-    }
-
     /* Rows become stacked records: row number and tag on top, comment below. */
     .table-wrap {
         max-height: none;
@@ -1338,8 +1334,7 @@ body {
 
     .tabs,
     .actions,
-    .drop-box,
-    .btn-download {
+    .drop-box {
         display: none;
     }
 

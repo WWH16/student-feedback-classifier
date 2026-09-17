@@ -11,7 +11,7 @@ This project serves as a research prototype demonstrating how the best-performin
 ## Current Status
 
 - **Single feedback classification** works and uses the trained SVM model.
-- **Batch classification** works: upload a CSV (up to 10 MB and 20,000 rows), pick the comment column, and get a sentiment tally, a results table (first 500 rows shown), and a CSV download with a `predicted_sentiment` column added.
+- **Batch classification** works: upload a CSV (up to 10 MB and 20,000 rows), pick the comment column, and get a sentiment tally, and a results table (first 500 rows shown).
 - **Processing time** is shown for both modes. It is measured on the server with `time.perf_counter()` and split into preprocessing, model (TF-IDF transform + SVM predict), and total. Batch also shows the average time per classified comment. Model files and NLTK data are loaded when the app starts, so the first request is not slowed by disk loading.
 - **Responsive layout** for phones, tablets, and desktops, including touch-sized controls, phone landscape, and notched screens.
 - **Color coding by sentiment:** Positive is green, Neutral is slate gray, and Negative is red. The form itself uses deep blue, so red appears only for Negative results and errors. Every color also has a text label.
@@ -22,7 +22,6 @@ This project serves as a research prototype demonstrating how the best-performin
 2. **Batch Classification**: Automated bulk classification through CSV file uploads.
 3. **Classification Results Display**: Clear presentation of automatically generated classifications.
 4. **Result Visualization**: Simple visual summary of batch classification distributions.
-5. **CSV Export**: Ability to download the processed CSV containing predicted classifications.
 
 ## Machine Learning Model
 

@@ -24,7 +24,7 @@ Applies a specific trained SVM + TF-IDF pipeline (produced in a separate researc
 
 ## Operating Context
 
-Local/research-tool usage, not a public multi-tenant deploy. Single feedback flow: user types or pastes one feedback text, submits, sees predicted sentiment class. Batch flow (`/batch`): CSV upload, comment column choice, bulk classification, sentiment tally, results table, CSV export.
+Local/research-tool usage, not a public multi-tenant deploy. Single feedback flow: user types or pastes one feedback text, submits, sees predicted sentiment class. Batch flow (`/batch`): CSV upload, comment column choice, bulk classification, sentiment tally, results table. No CSV export.
 
 ## Capabilities and Constraints
 
