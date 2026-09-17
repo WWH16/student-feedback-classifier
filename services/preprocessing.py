@@ -11,6 +11,7 @@ Any change here must also be made in the training notebook, or predictions drift
 """
 
 import re
+from functools import lru_cache
 
 import nltk
 from nltk.corpus import stopwords
@@ -23,6 +24,9 @@ _NLTK_RESOURCES = {
 }
 
 _stop_words = None
+
+_NON_LETTERS = re.compile(r"[^a-z\s]")
+_SPACES = re.compile(r"\s+")
 
 
 def ensure_nltk_data():
@@ -43,13 +47,21 @@ def _get_stop_words():
 
 def normalize_text(text):
     text = str(text).lower()
-    text = re.sub(r"[^a-z\s]", "", text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = _NON_LETTERS.sub("", text)
+    text = _SPACES.sub(" ", text).strip()
     return text
 
 
+@lru_cache(maxsize=100_000)
+def _tokenize_word(word):
+    return tuple(word_tokenize(word))
+
+
 def tokenize_text(text):
-    return word_tokenize(text)
+    # Normalized text holds only a-z and single spaces. For that input word_tokenize only
+    # splits inside single words (for example "cannot" -> "can", "not"), so tokenizing each
+    # word on its own gives the same tokens, and the per-word cache makes batches fast.
+    return [token for word in text.split(" ") if word for token in _tokenize_word(word)]
 
 
 def remove_stopwords(tokens):

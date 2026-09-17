@@ -23,6 +23,7 @@ from pathlib import Path
 from time import perf_counter
 
 import joblib
+import numpy as np
 
 from services.preprocessing import ensure_nltk_data, preprocess
 
@@ -46,6 +47,8 @@ _NEGATIVE_WORDS = {
 
 _model = None
 _vectorizer = None
+_fast_predict_ok = False
+_ZERO_MARGIN = 1e-9
 
 
 class EmptyAfterPreprocessing(ValueError):
@@ -64,12 +67,54 @@ def _load_artifacts():
     return _model, _vectorizer
 
 
+def _fast_linear_predict(model, features):
+    """
+    Same result as SVC.predict for a linear kernel, computed with a sparse matrix product.
+
+    libsvm scores each class pair (i, j) as coef . x + intercept and votes for class i when
+    the score is positive, otherwise for class j; ties go to the lower class index.
+    Returns (predictions, unsure), where unsure marks rows with a pair score so close to zero
+    that floating-point rounding could differ from libsvm; callers re-check those with predict.
+    """
+    scores = features @ model.coef_.T
+    scores = (scores.toarray() if hasattr(scores, "toarray") else np.asarray(scores)) + model.intercept_
+    n_classes = len(model.classes_)
+    votes = np.zeros((features.shape[0], n_classes), dtype=np.int32)
+    unsure = np.zeros(features.shape[0], dtype=bool)
+    pair = 0
+    for i in range(n_classes):
+        for j in range(i + 1, n_classes):
+            positive = scores[:, pair] > 0
+            unsure |= np.abs(scores[:, pair]) < _ZERO_MARGIN
+            votes[positive, i] += 1
+            votes[~positive, j] += 1
+            pair += 1
+    return model.classes_[votes.argmax(axis=1)], unsure
+
+
+def _check_fast_predict(model, vectorizer):
+    """Enable the fast path only if it matches model.predict exactly on a probe set."""
+    if getattr(model, "kernel", None) != "linear" or getattr(model, "decision_function_shape", "ovr") not in ("ovr", "ovo"):
+        return False
+    rng = np.random.default_rng(42)
+    vocabulary = np.array(sorted(vectorizer.vocabulary_))
+    probes = [
+        " ".join(rng.choice(vocabulary, size=rng.integers(1, 30)))
+        for _ in range(1000)
+    ]
+    features = vectorizer.transform(probes)
+    fast, _unsure = _fast_linear_predict(model, features)
+    return bool(np.array_equal(fast, model.predict(features)))
+
+
 def warm_up():
     """Load model files and NLTK data up front so the first timing is not inflated by disk loads."""
+    global _fast_predict_ok
     ensure_nltk_data()
     preprocess("warm up")
     if model_available():
-        _load_artifacts()
+        model, vectorizer = _load_artifacts()
+        _fast_predict_ok = _check_fast_predict(model, vectorizer)
 
 
 def _ms(start, end):
@@ -92,7 +137,14 @@ def _predict_many(raw_texts, cleaned_texts):
         return []
     if model_available():
         model, vectorizer = _load_artifacts()
-        predictions = model.predict(vectorizer.transform(cleaned_texts))
+        features = vectorizer.transform(cleaned_texts)
+        if _fast_predict_ok:
+            predictions, unsure = _fast_linear_predict(model, features)
+            if unsure.any():
+                # A pair score within rounding distance of zero could flip sign; let libsvm decide those rows.
+                predictions[unsure] = model.predict(features[unsure])
+        else:
+            predictions = model.predict(features)
         return [CLASS_TO_LABEL[int(p)] for p in predictions]
     return [_placeholder_predict(text) for text in raw_texts]
 

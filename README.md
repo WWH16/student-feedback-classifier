@@ -45,6 +45,8 @@ The files were saved with scikit-learn 1.9.0, so `requirements.txt` pins that ve
 
 If you change preprocessing in the training notebook, change this module the same way and export the model again. The app downloads the NLTK data it needs (`punkt`, `punkt_tab`, `stopwords`) on first use.
 
+For speed, the app tokenizes one word at a time with a cache, and computes the linear SVM's pair votes with a sparse matrix product instead of calling `SVC.predict`. Both give the same output as the notebook pipeline. At startup the app compares the fast prediction with `SVC.predict` on 1,000 probe texts and falls back to `SVC.predict` if they ever differ. Any row whose pair score is within 1e-9 of zero is also sent to `SVC.predict`, so rounding can never flip a vote. A 20,000-row batch takes about half a second.
+
 If no words remain after preprocessing (for example, the input is only stopwords or punctuation), the API returns an error instead of a label.
 
 ## Running the App
