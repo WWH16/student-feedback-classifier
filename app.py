@@ -1,6 +1,7 @@
+import csv
 import io
+import os
 
-import pandas as pd
 from flask import Flask, jsonify, render_template, request
 
 from services.classifier import (
@@ -12,17 +13,22 @@ from services.classifier import (
     warm_up,
 )
 
-app = Flask(__name__)
+# Static files live in public/static: Vercel serves public/ from its CDN, Flask serves it locally.
+app = Flask(__name__, static_folder='public/static', static_url_path='/static')
+
+ON_VERCEL = bool(os.environ.get('VERCEL'))
 
 MAX_FEEDBACK_CHARS = 2000
-MAX_UPLOAD_MB = 10
+# Vercel Functions accept request bodies up to 4.5 MB, so uploads stay under that there.
+MAX_UPLOAD_MB = 4 if ON_VERCEL else 10
 MAX_BATCH_ROWS = 20000
 PLACEHOLDER_NOTE = (
     'Placeholder rule, not the trained model. '
     'Add models/svm_model.pkl and models/tfidf_vectorizer.pkl to use the study model.'
 )
 
-app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_MB * 1024 * 1024
+# Allow a little room for the multipart form wrapper around the file.
+app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_MB * 1024 * 1024 + 64 * 1024
 
 warm_up()
 
@@ -65,6 +71,11 @@ class CsvError(ValueError):
     pass
 
 
+def _is_blank(record):
+    # Same rule as parseCsv in main.js: a line with one empty or whitespace-only field is skipped.
+    return len(record) == 1 and not record[0].strip()
+
+
 def _read_upload():
     upload = request.files.get('file')
     if upload is None or not upload.filename:
@@ -78,36 +89,43 @@ def _read_upload():
 
     for encoding in ('utf-8-sig', 'cp1252'):
         try:
-            frame = pd.read_csv(io.BytesIO(raw), dtype=str, keep_default_na=False, encoding=encoding)
+            text = raw.decode(encoding)
             break
         except UnicodeDecodeError:
             continue
-        except (pd.errors.ParserError, pd.errors.EmptyDataError):
-            raise CsvError('Could not read this CSV. Check that it has a header row and comma-separated columns.')
     else:
         raise CsvError('Could not read the text encoding. Save the CSV as UTF-8 and upload it again.')
 
-    if frame.empty or not len(frame.columns):
+    # The browser reads the same file with matching rules, so row N here is row N on the page.
+    try:
+        records = [record for record in csv.reader(io.StringIO(text, newline='')) if record and not _is_blank(record)]
+    except csv.Error:
+        raise CsvError('Could not read this CSV. Check that it has a header row and comma-separated columns.')
+
+    if not records:
+        raise CsvError('The CSV file is empty.')
+    header, rows = records[0], records[1:]
+    if not rows:
         raise CsvError('The CSV has a header but no rows.')
-    if len(frame) > MAX_BATCH_ROWS:
-        raise CsvError(f'The CSV has {len(frame):,} rows. The limit is {MAX_BATCH_ROWS:,}. Split the file and try again.')
-    return frame
+    if len(rows) > MAX_BATCH_ROWS:
+        raise CsvError(f'The CSV has {len(rows):,} rows. The limit is {MAX_BATCH_ROWS:,}. Split the file and try again.')
+    return header, rows
 
 
 @app.post('/api/batch')
 def api_batch():
     try:
-        frame = _read_upload()
+        header, rows = _read_upload()
     except CsvError as error:
         return jsonify(error=str(error)), 400
 
     # The page sends the column position, which stays exact for blank or duplicate header names.
     position = request.form.get('column', '')
-    if not position.isdigit() or int(position) >= len(frame.columns):
+    if not position.isdigit() or int(position) >= len(header):
         return jsonify(error='Pick the column that holds the comments.'), 400
-    column = frame.columns[int(position)]
+    index = int(position)
 
-    texts = [value.strip() for value in frame.iloc[:, int(position)].tolist()]
+    texts = [(row[index] if index < len(row) else '').strip() for row in rows]
     result = classify_batch(texts)
     labels = result['labels']
 
@@ -115,13 +133,14 @@ def api_batch():
     skipped = labels.count(None)
 
     return jsonify(
-        column=str(column),
+        column=header[index],
         rows=len(texts),
         classified=len(texts) - skipped,
         skipped=skipped,
         counts=counts,
-        # Every row as [comment, label]; the page shows them 100 at a time.
-        items=[[text, label] for text, label in zip(texts, labels)],
+        # Labels only, in row order: the page already has the comments from its own read of the file,
+        # and echoing them back could push the response past Vercel's 4.5 MB limit.
+        labels=labels,
         placeholder=result['placeholder'],
         timing=result['timing'],
     )

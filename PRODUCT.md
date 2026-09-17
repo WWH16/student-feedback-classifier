@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Flask (Jinja2 templates) + vanilla CSS/JS. Established by existing scaffold (app.py, templates/, static/); not re-asked.
+Flask (Jinja2 templates) + vanilla CSS/JS. Established by existing scaffold (app.py, templates/, public/static/); deployed on Vercel; not re-asked.
 
 ## Users
 

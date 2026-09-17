@@ -10,17 +10,24 @@ Mirrors the preprocessing used when the SVM model was trained, step for step:
 Any change here must also be made in the training notebook, or predictions drift silently.
 """
 
+import os
 import re
 from functools import lru_cache
+from pathlib import Path
 
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
+# The English tokenizer tables and stopword list ship in nltk_data/, because hosted
+# deployments such as Vercel cannot download them at runtime.
+BUNDLED_NLTK_DATA = Path(__file__).resolve().parent.parent / "nltk_data"
+if str(BUNDLED_NLTK_DATA) not in nltk.data.path:
+    nltk.data.path.insert(0, str(BUNDLED_NLTK_DATA))
+
 _NLTK_RESOURCES = {
-    "punkt": "tokenizers/punkt",
-    "punkt_tab": "tokenizers/punkt_tab",
-    "stopwords": "corpora/stopwords",
+    "punkt_tab": "tokenizers/punkt_tab/english/",
+    "stopwords": "corpora/stopwords/english",
 }
 
 _stop_words = None
@@ -34,7 +41,11 @@ def ensure_nltk_data():
         try:
             nltk.data.find(resource)
         except LookupError:
-            nltk.download(package, quiet=True)
+            # Fallback only; /tmp is the one writable place on serverless hosts.
+            target = "/tmp/nltk_data" if os.environ.get("VERCEL") else None
+            if target and target not in nltk.data.path:
+                nltk.data.path.append(target)
+            nltk.download(package, download_dir=target, quiet=True)
 
 
 def _get_stop_words():

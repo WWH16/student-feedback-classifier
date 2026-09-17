@@ -227,26 +227,28 @@ const PLACEHOLDER_NOTE = escapeHtml(document.body.dataset.placeholderNote || '')
 
 const COLUMN_HINTS = ['comment', 'feedback', 'text', 'review', 'remark', 'response'];
 
-// Minimal RFC 4180 reader: counts data rows and keeps a sample to suggest the comment column.
-function parseCsv(text, sampleSize = 200) {
+// CSV reader with the same rules as Python's csv module used by app.py: quotes only open a
+// field at its start, and a line with one empty or whitespace-only field is skipped.
+// Row N here is row N in the app, so labels returned by the app line up with these rows.
+function parseCsv(text) {
     let header = null;
-    let count = 0;
-    const sample = [];
+    const rows = [];
     let record = [];
     let field = '';
     let quoted = false;
+    let fieldStart = true;
 
-    const endRecord = () => {
+    const endField = () => {
         record.push(field);
         field = '';
-        const blank = record.length === 1 && record[0] === '';
+        fieldStart = true;
+    };
+    const endRecord = () => {
+        endField();
+        const blank = record.length === 1 && !record[0].trim();
         if (!blank) {
-            if (!header) {
-                header = record;
-            } else {
-                count += 1;
-                if (sample.length < sampleSize) sample.push(record);
-            }
+            if (!header) header = record;
+            else rows.push(record);
         }
         record = [];
     };
@@ -262,21 +264,22 @@ function parseCsv(text, sampleSize = 200) {
             } else {
                 quoted = false;
             }
-        } else if (ch === '"') {
+        } else if (ch === '"' && fieldStart) {
             quoted = true;
+            fieldStart = false;
         } else if (ch === ',') {
-            record.push(field);
-            field = '';
+            endField();
         } else if (ch === '\r' || ch === '\n') {
             endRecord();
             if (ch === '\r' && text[i + 1] === '\n') i += 1;
         } else {
             field += ch;
+            fieldStart = false;
         }
     }
-    if (field !== '' || record.length) endRecord();
+    if (field !== '' || record.length || quoted) endRecord();
 
-    return { header: header || [], sample, count };
+    return { header: header || [], rows };
 }
 
 // Returns the index of the column most likely to hold the comments.
@@ -335,6 +338,7 @@ function suggestColumn(header, sample) {
     const PAGE_SIZE = 100;
 
     let file = null;
+    let fileRows = [];
     let pending = null;
     let reading = null;
     let items = [];
@@ -385,6 +389,7 @@ function suggestColumn(header, sample) {
 
     function clearFile(message) {
         file = null;
+        fileRows = [];
         fileInput.value = '';
         fileStatus.innerHTML = initialStatus;
         dropBox.classList.remove('has-file');
@@ -427,13 +432,15 @@ function suggestColumn(header, sample) {
             if (!header.length || header.every((name) => !name.trim())) {
                 throw new Error('Could not find a header row. The first line of the CSV must name the columns.');
             }
-            if (!parsed.count) throw new Error('The CSV has a header but no rows.');
-            if (parsed.count > maxRows) {
-                throw new Error(`The CSV has ${numberFormat.format(parsed.count)} rows. The limit is ${numberFormat.format(maxRows)}. Split the file and try again.`);
+            const count = parsed.rows.length;
+            if (!count) throw new Error('The CSV has a header but no rows.');
+            if (count > maxRows) {
+                throw new Error(`The CSV has ${numberFormat.format(count)} rows. The limit is ${numberFormat.format(maxRows)}. Split the file and try again.`);
             }
+            fileRows = parsed.rows;
 
             // Options carry the column position, so duplicate or blank header names still map exactly.
-            const suggested = suggestColumn(header, parsed.sample);
+            const suggested = suggestColumn(header, parsed.rows.slice(0, 200));
             columnSelect.innerHTML = header
                 .map((name, index) => {
                     const label = name.trim() ? escapeHtml(name) : `Column ${index + 1} (no name)`;
@@ -441,7 +448,7 @@ function suggestColumn(header, sample) {
                 })
                 .join('');
             columnSelect.disabled = false;
-            columnNote.textContent = `${numberFormat.format(parsed.count)} rows · ${header.length} columns`;
+            columnNote.textContent = `${numberFormat.format(count)} rows · ${header.length} columns`;
             setBusy(false, 'Classify all rows');
         } catch (error) {
             if (reading !== token) return;
@@ -503,7 +510,8 @@ function suggestColumn(header, sample) {
         fillTiming(timing, data.timing);
 
         tableCount.textContent = `${numberFormat.format(data.rows)} rows`;
-        items = data.items;
+        const column = Number(columnSelect.value);
+        items = fileRows.map((row, index) => [(row[column] || '').trim(), data.labels[index]]);
         page = 0;
         renderPage();
 
@@ -575,6 +583,9 @@ function suggestColumn(header, sample) {
             const response = await fetch(form.action, { method: 'POST', body, signal: controller.signal });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.error || 'The app could not read this file. Try again.');
+            if (!Array.isArray(data.labels) || data.labels.length !== fileRows.length) {
+                throw new Error('The app and the page read a different number of rows. Save the file as a standard CSV and try again.');
+            }
             renderResults(data);
             await revealResults(controller);
         } catch (error) {
