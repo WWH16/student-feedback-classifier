@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Batch Classification - Student Feedback Classifier{% endblock %}
-{% block body_class %}is-wide{% endblock %}
+{% block body_class %}is-wide is-batch{% endblock %}
 
 {% block content %}
 <div class="sheet-intro">
@@ -84,6 +84,11 @@
 
         <div class="table-head">
             <h3 class="timing-title" id="table-title">Marked rows <span id="table-count"></span></h3>
+            <nav class="pager" id="pager" aria-label="Result pages" hidden>
+                <button type="button" class="btn-erase" id="page-prev">Previous</button>
+                <p class="pager-status" id="page-status" aria-live="polite"></p>
+                <button type="button" class="btn-erase" id="page-next">Next</button>
+            </nav>
         </div>
 
         <div class="table-wrap" role="region" aria-labelledby="table-title" tabindex="0">
@@ -99,12 +104,6 @@
                 <tbody id="rows" role="rowgroup"></tbody>
             </table>
         </div>
-
-        <nav class="pager" id="pager" aria-label="Result pages" hidden>
-            <button type="button" class="btn-erase" id="page-prev">Previous</button>
-            <p class="pager-status" id="page-status" aria-live="polite"></p>
-            <button type="button" class="btn-erase" id="page-next">Next</button>
-        </nav>
     </section>
 </form>
 {% endblock %}

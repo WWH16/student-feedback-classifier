@@ -1112,12 +1112,17 @@ body {
     font-weight: 600;
 }
 
+/* The pager sits on the "Marked rows" heading line, so the table below gets the height. */
 .pager {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-top: 1rem;
+    gap: 0.5rem 0.75rem;
+    margin-left: auto;
+}
+
+.pager .btn-erase {
+    min-height: 2.5rem;
+    padding-block: 0.4rem;
 }
 
 .pager-status {
@@ -1197,14 +1202,14 @@ body {
         max-width: 76rem;
     }
 
-    .is-single .sheet-intro {
+    :is(.is-single, .is-batch) .sheet-intro {
         display: flex;
         flex-wrap: wrap;
         align-items: baseline;
         gap: 0.35rem 1.75rem;
     }
 
-    .is-single .sheet-intro p {
+    :is(.is-single, .is-batch) .sheet-intro p {
         margin: 0;
     }
 
@@ -1257,41 +1262,124 @@ body {
     }
 }
 
+/*
+ * Batch on laptops and larger screens: file box A and column box B sit side by side so
+ * setup stays short, and results section C is at most one window tall. The table scrolls
+ * inside its own box, so after the page moves to C nothing else needs scrolling.
+ */
+
+@media (min-width: 60rem) {
+    .is-batch .mark-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        grid-template-areas:
+            "file column"
+            "file actions"
+            "error error"
+            "results results";
+        grid-template-rows: auto 1fr;
+        column-gap: clamp(2rem, 4vw, 3.5rem);
+    }
+
+    .is-batch .mark-form > .field:first-of-type {
+        grid-area: file;
+    }
+
+    .is-batch .mark-form > .field + .field {
+        grid-area: column;
+        margin-top: 0;
+    }
+
+    .is-batch .mark-form > .actions {
+        grid-area: actions;
+        align-self: end;
+        margin-top: 0.75rem;
+    }
+
+    .is-batch #batch-error {
+        grid-area: error;
+    }
+
+    .is-batch .select-box {
+        flex-basis: 100%;
+    }
+
+    .is-batch .drop-box {
+        min-height: 7.5rem;
+    }
+
+    .is-batch .results {
+        grid-area: results;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 1.5rem);
+        max-height: calc(100dvh - 1.5rem);
+        min-height: 0;
+        scroll-margin-top: 0.75rem;
+    }
+
+    .is-batch .results[hidden] {
+        display: none;
+    }
+
+    .is-batch .results-top {
+        flex: none;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+        align-items: start;
+    }
+
+    .is-batch .results-top .timing-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .is-batch .table-head {
+        flex: none;
+        margin-top: 1.25rem;
+    }
+
+    .is-batch .table-wrap {
+        flex: 0 1 auto;
+        min-height: 9rem;
+        max-height: none;
+    }
+
+}
+
 /* Laptop heights: tighten vertical spacing so the result and timing stay above the fold. */
 
 @media (min-width: 60rem) and (max-height: 56rem) {
-    .is-single {
+    :is(.is-single, .is-batch) {
         padding-block: 0.75rem;
     }
 
-    .is-single .sheet {
+    :is(.is-single, .is-batch) .sheet {
         min-height: calc(100vh - 1.5rem);
         min-height: calc(100dvh - 1.5rem);
     }
 
-    .is-single .reg-row {
+    :is(.is-single, .is-batch) .reg-row {
         padding-block: 0.35rem;
     }
 
-    .is-single .head-bar {
+    :is(.is-single, .is-batch) .head-bar {
         padding-block: 0.55rem;
     }
 
-    .is-single .tabs a {
+    :is(.is-single, .is-batch) .tabs a {
         min-height: 2.5rem;
         padding-block: 0.4rem 0.3rem;
     }
 
-    .is-single .sheet-body {
+    :is(.is-single, .is-batch) .sheet-body {
         padding-top: 1.25rem;
         padding-bottom: 1.25rem;
     }
 
-    .is-single .sheet-intro {
+    :is(.is-single, .is-batch) .sheet-intro {
         margin-bottom: 1.25rem;
     }
 
-    .is-single .sheet-intro h1 {
+    :is(.is-single, .is-batch) .sheet-intro h1 {
         font-size: 2.5rem;
     }
 
@@ -1316,7 +1404,7 @@ body {
         border-top: 0;
     }
 
-    .is-single .fine-print {
+    :is(.is-single, .is-batch) .fine-print {
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
@@ -1331,16 +1419,44 @@ body {
         margin-top: 0.75rem;
     }
 
-    .is-single .timing-cell {
+    :is(.is-single, .is-batch) .timing-cell {
         padding: 0.5rem 0.75rem 0.6rem;
     }
 
-    .is-single .t-value {
+    :is(.is-single, .is-batch) .t-value {
         font-size: 1.6rem;
     }
 
-    .is-single .sheet-foot {
+    :is(.is-single, .is-batch) .sheet-foot {
         padding-block: 0.55rem 0.6rem;
+    }
+}
+
+@media (min-width: 60rem) and (max-height: 56rem) {
+    .is-batch .drop-box {
+        min-height: 6rem;
+        padding-block: 0.75rem;
+    }
+
+    .is-batch .results {
+        margin-top: 1.5rem !important;
+        padding-top: 1rem;
+    }
+
+    .is-batch .tally-row {
+        padding-block: 0.3rem;
+    }
+
+    .is-batch .tally-skip {
+        margin-top: 0.35rem;
+    }
+
+    .is-batch .results .field-head {
+        margin-bottom: 0.4rem;
+    }
+
+    .is-batch .rows-table td {
+        padding-block: 0.45rem;
     }
 }
 
@@ -1351,30 +1467,30 @@ body {
         min-height: calc(var(--line) * 5);
     }
 
-    .is-single .sheet-intro h1 {
+    :is(.is-single, .is-batch) .sheet-intro h1 {
         font-size: 2.1rem;
     }
 
     /* The sheet fills the window edge to edge, like on phones. */
-    .is-single {
+    :is(.is-single, .is-batch) {
         padding-block: 0;
     }
 
-    .is-single .sheet {
+    :is(.is-single, .is-batch) .sheet {
         min-height: 100vh;
         min-height: 100dvh;
         border-block: 0;
     }
 
-    .is-single .sheet-intro {
+    :is(.is-single, .is-batch) .sheet-intro {
         margin-bottom: 0.9rem;
     }
 
-    .is-single .timing-title {
+    :is(.is-single, .is-batch) .timing-title {
         margin-bottom: 0.3rem;
     }
 
-    .is-single .timing-hint {
+    :is(.is-single, .is-batch) .timing-hint {
         font-size: 0.75rem;
     }
 }
@@ -1482,6 +1598,8 @@ body {
 
     .pager {
         flex-wrap: wrap;
+        flex-basis: 100%;
+        margin-left: 0;
     }
 
     .pager-status {
