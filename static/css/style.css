@@ -413,6 +413,8 @@ body {
 }
 
 .btn-mark {
+    position: relative;
+    overflow: hidden;
     min-width: 13rem;
     padding: 0.75rem 1.75rem;
     border: 0;
@@ -427,9 +429,45 @@ body {
     transform: translateY(1px);
 }
 
+/*
+ * Loading: timing marks feed along the button's lower edge, like a sheet passing
+ * through the reader. Everything waits 150ms so instant answers never flash.
+ */
 .btn-mark[aria-busy="true"] {
     cursor: progress;
     background-color: var(--graphite-soft);
+    transition-delay: 150ms;
+}
+
+.btn-mark[aria-busy="true"]::after {
+    content: "";
+    position: absolute;
+    bottom: 0.3rem;
+    left: -1.1rem;
+    right: 0;
+    height: 3px;
+    background-image: repeating-linear-gradient(
+        90deg,
+        var(--paper) 0 0.55rem,
+        transparent 0.55rem 1.1rem
+    );
+    opacity: 0;
+    pointer-events: none;
+    animation:
+        busy-in 160ms var(--ease-out) 150ms forwards,
+        feed-marks 640ms linear infinite;
+}
+
+@keyframes busy-in {
+    to {
+        opacity: 0.85;
+    }
+}
+
+@keyframes feed-marks {
+    to {
+        transform: translateX(1.1rem);
+    }
 }
 
 .btn-mark:disabled:not([aria-busy="true"]) {
@@ -1337,7 +1375,11 @@ body {
         font-size: 0.95rem;
     }
 
-    /* Primary action gets the full width so its label stays on one line. */
+}
+
+/* Phones: primary action gets the full width so its label stays on one line. */
+
+@media (max-width: 26rem) {
     .actions {
         flex-direction: column-reverse;
         align-items: stretch;
@@ -1399,6 +1441,11 @@ body {
 
     [data-reveal="run"]::after {
         display: none;
+    }
+
+    /* Marks hold still; the busy label and tone still show the state. */
+    .btn-mark[aria-busy="true"]::after {
+        animation: busy-in 160ms ease-out 150ms forwards;
     }
 
     *,

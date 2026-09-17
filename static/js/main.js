@@ -68,6 +68,22 @@ function setReveal(elements, state) {
     });
 }
 
+// Busy look and label wait a beat, so instant answers do not flash a loading state.
+const BUSY_DELAY_MS = 150;
+
+function setButtonBusy(button, busy, label) {
+    clearTimeout(button.busyTimer);
+    if (busy) {
+        button.setAttribute('aria-busy', 'true');
+        button.busyTimer = setTimeout(() => {
+            button.textContent = label;
+        }, BUSY_DELAY_MS);
+    } else {
+        button.removeAttribute('aria-busy');
+        button.textContent = label;
+    }
+}
+
 const PLACEHOLDER_NOTE = escapeHtml(document.body.dataset.placeholderNote || '');
 
 /* Single feedback */
@@ -115,7 +131,7 @@ const PLACEHOLDER_NOTE = escapeHtml(document.body.dataset.placeholderNote || '')
         if (errorBox.textContent) errorBox.textContent = '';
         if (result.dataset.state === 'marked') {
             clearMark();
-            setResult('empty', 'Comment changed. Mark sentiment again.');
+            setResult('empty', 'Comment changed. Classify it again.');
         }
         updateControls();
     });
@@ -155,10 +171,9 @@ const PLACEHOLDER_NOTE = escapeHtml(document.body.dataset.placeholderNote || '')
 
         clearMark();
         errorBox.textContent = '';
-        markButton.setAttribute('aria-busy', 'true');
-        markButton.textContent = 'Reading sheet';
+        setButtonBusy(markButton, true, 'Classifying…');
         bubbles.setAttribute('aria-busy', 'true');
-        setResult('loading', 'Reading sheet…');
+        setResult('loading', 'Classifying…');
 
         try {
             const response = await fetch(form.action, {
@@ -199,8 +214,7 @@ const PLACEHOLDER_NOTE = escapeHtml(document.body.dataset.placeholderNote || '')
         } finally {
             if (pending !== controller) return;
             pending = null;
-            markButton.removeAttribute('aria-busy');
-            markButton.textContent = 'Mark sentiment';
+            setButtonBusy(markButton, false, 'Classify sentiment');
             bubbles.removeAttribute('aria-busy');
             updateControls();
         }
@@ -295,6 +309,7 @@ function suggestColumn(header, sample) {
     const columnSelect = document.getElementById('column');
     const columnNote = document.getElementById('column-note');
     const errorBox = document.getElementById('batch-error');
+    const busyStatus = document.getElementById('batch-status');
     const markButton = document.getElementById('batch-mark');
     const resetButton = document.getElementById('batch-reset');
     const results = document.getElementById('results');
@@ -330,15 +345,12 @@ function suggestColumn(header, sample) {
     }
 
     function setBusy(busy, label) {
-        if (busy) {
-            markButton.setAttribute('aria-busy', 'true');
-            form.setAttribute('aria-busy', 'true');
-        } else {
-            markButton.removeAttribute('aria-busy');
-            form.removeAttribute('aria-busy');
-        }
-        markButton.textContent = label;
-        markButton.disabled = busy || !file || !columnSelect.value;
+        setButtonBusy(markButton, busy, label);
+        if (busy) form.setAttribute('aria-busy', 'true');
+        else form.removeAttribute('aria-busy');
+        busyStatus.textContent = busy ? label : '';
+        // Stay enabled while busy so keyboard focus is not dropped; the submit handler ignores repeats.
+        markButton.disabled = !busy && (!file || !columnSelect.value);
         resetButton.disabled = !file && results.hidden;
     }
 
@@ -378,7 +390,7 @@ function suggestColumn(header, sample) {
         dropBox.classList.remove('has-file');
         resetColumns('Choose a file first');
         setError(message);
-        setBusy(false, 'Mark all rows');
+        setBusy(false, 'Classify all rows');
     }
 
     // Read the header and row count in the browser, so the file is uploaded only once.
@@ -403,7 +415,7 @@ function suggestColumn(header, sample) {
         dropBox.classList.add('has-file');
         fileStatus.innerHTML = `<strong>${escapeHtml(chosen.name)}</strong> <span>${formatBytes(chosen.size)}</span>`;
         resetColumns('Reading columns…');
-        setBusy(true, 'Reading file');
+        setBusy(true, 'Reading file…');
 
         const token = {};
         reading = token;
@@ -430,7 +442,7 @@ function suggestColumn(header, sample) {
                 .join('');
             columnSelect.disabled = false;
             columnNote.textContent = `${numberFormat.format(parsed.count)} rows · ${header.length} columns`;
-            setBusy(false, 'Mark all rows');
+            setBusy(false, 'Classify all rows');
         } catch (error) {
             if (reading !== token) return;
             clearFile(error.message || 'Could not read this CSV. Check that it has a header row and comma-separated columns.');
@@ -513,7 +525,7 @@ function suggestColumn(header, sample) {
 
     columnSelect.addEventListener('change', () => {
         hideResults();
-        setBusy(false, 'Mark all rows');
+        setBusy(false, 'Classify all rows');
     });
 
     ['dragenter', 'dragover'].forEach((type) => dropBox.addEventListener(type, (event) => {
@@ -539,6 +551,7 @@ function suggestColumn(header, sample) {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (markButton.hasAttribute('aria-busy')) return;
         if (!file) {
             setError('Choose a CSV file first.');
             return;
@@ -553,7 +566,7 @@ function suggestColumn(header, sample) {
         pending = controller;
         setError('');
         hideResults();
-        setBusy(true, 'Marking rows');
+        setBusy(true, 'Classifying rows…');
 
         try {
             const body = new FormData();
@@ -572,10 +585,10 @@ function suggestColumn(header, sample) {
         } finally {
             if (pending === controller) {
                 pending = null;
-                setBusy(false, 'Mark all rows');
+                setBusy(false, 'Classify all rows');
             }
         }
     });
 
-    setBusy(false, 'Mark all rows');
+    setBusy(false, 'Classify all rows');
 })();
