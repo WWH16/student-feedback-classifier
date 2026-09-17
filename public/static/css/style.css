@@ -1186,6 +1186,199 @@ body {
     }
 }
 
+/*
+ * Single feedback on laptops and larger screens: the sheet turns into two columns,
+ * comment box A with its actions on the left and answer row B with the result and
+ * timing on the right, so the whole task fits in one screen without scrolling.
+ */
+
+@media (min-width: 60rem) {
+    .is-single .sheet {
+        max-width: 76rem;
+    }
+
+    .is-single .sheet-intro {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.35rem 1.75rem;
+    }
+
+    .is-single .sheet-intro p {
+        margin: 0;
+    }
+
+    .is-single .mark-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+        column-gap: clamp(2rem, 4vw, 3.5rem);
+        align-items: start;
+    }
+
+    .is-single .mark-form > .field:first-child {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .is-single .mark-form > .actions {
+        grid-column: 1;
+        grid-row: 2;
+        margin-top: 0.75rem;
+    }
+
+    .is-single .mark-form > .field:last-child {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        margin-top: 0;
+    }
+
+    /* Answer choices read as a vertical column, like the rows of a mark sheet. */
+    .is-single .bubbles {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+        padding: 0;
+    }
+
+    .is-single .bubble-item {
+        padding: 0.7rem 0;
+    }
+
+    .is-single .bubble-item + .bubble-item {
+        border-top: 1px solid var(--ink-rule);
+    }
+
+    .is-single .timing {
+        margin-top: 1rem;
+    }
+
+    .is-single .timing-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Laptop heights: tighten vertical spacing so the result and timing stay above the fold. */
+
+@media (min-width: 60rem) and (max-height: 56rem) {
+    .is-single {
+        padding-block: 0.75rem;
+    }
+
+    .is-single .sheet {
+        min-height: calc(100vh - 1.5rem);
+        min-height: calc(100dvh - 1.5rem);
+    }
+
+    .is-single .reg-row {
+        padding-block: 0.35rem;
+    }
+
+    .is-single .head-bar {
+        padding-block: 0.55rem;
+    }
+
+    .is-single .tabs a {
+        min-height: 2.5rem;
+        padding-block: 0.4rem 0.3rem;
+    }
+
+    .is-single .sheet-body {
+        padding-top: 1.25rem;
+        padding-bottom: 1.25rem;
+    }
+
+    .is-single .sheet-intro {
+        margin-bottom: 1.25rem;
+    }
+
+    .is-single .sheet-intro h1 {
+        font-size: 2.5rem;
+    }
+
+    .is-single .comment-box textarea {
+        min-height: calc(var(--line) * 6);
+    }
+
+    /* Answer choices sit side by side here to save height. */
+    .is-single .bubbles {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        padding: 0.6rem 0;
+    }
+
+    .is-single .bubble-item {
+        flex-direction: column;
+        gap: 0.35rem;
+        padding-block: 0;
+    }
+
+    .is-single .bubble-item + .bubble-item {
+        border-top: 0;
+    }
+
+    .is-single .fine-print {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.15rem 1.25rem;
+    }
+
+    .is-single .result-line {
+        margin-top: 0.6rem;
+    }
+
+    .is-single .timing {
+        margin-top: 0.75rem;
+    }
+
+    .is-single .timing-cell {
+        padding: 0.5rem 0.75rem 0.6rem;
+    }
+
+    .is-single .t-value {
+        font-size: 1.6rem;
+    }
+
+    .is-single .sheet-foot {
+        padding-block: 0.55rem 0.6rem;
+    }
+}
+
+/* Short laptop screens (720p): one line less in the comment box. */
+
+@media (min-width: 60rem) and (max-height: 42rem) {
+    .is-single .comment-box textarea {
+        min-height: calc(var(--line) * 5);
+    }
+
+    .is-single .sheet-intro h1 {
+        font-size: 2.1rem;
+    }
+
+    /* The sheet fills the window edge to edge, like on phones. */
+    .is-single {
+        padding-block: 0;
+    }
+
+    .is-single .sheet {
+        min-height: 100vh;
+        min-height: 100dvh;
+        border-block: 0;
+    }
+
+    .is-single .sheet-intro {
+        margin-bottom: 0.9rem;
+    }
+
+    .is-single .timing-title {
+        margin-bottom: 0.3rem;
+    }
+
+    .is-single .timing-hint {
+        font-size: 0.75rem;
+    }
+}
+
 /* Touch: bigger targets, no drag-and-drop hint */
 
 @media (pointer: coarse) {
