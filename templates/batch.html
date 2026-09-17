@@ -10,7 +10,7 @@
 </div>
 
 <form id="batch-form" class="mark-form" action="{{ url_for('api_batch') }}"
-      data-inspect="{{ url_for('api_batch_inspect') }}" data-preview-rows="{{ preview_rows }}" novalidate>
+      data-max-bytes="{{ max_upload_bytes }}" data-max-mb="{{ max_upload_mb }}" data-max-rows="{{ max_rows }}" novalidate>
     <section class="field" aria-labelledby="field-a">
         <div class="field-head">
             <span class="field-letter" aria-hidden="true">A</span>
@@ -60,7 +60,7 @@
         </div>
 
         <p class="result-line" id="batch-placeholder" hidden>
-            <span class="note">Placeholder rule, not the trained model. Add models/svm_model.pkl and models/tfidf_vectorizer.pkl to use the study model.</span>
+            <span class="note">{{ placeholder_note }}</span>
         </p>
 
         <div class="results-top">
@@ -86,17 +86,24 @@
         </div>
 
         <div class="table-wrap" role="region" aria-labelledby="table-title" tabindex="0">
-            <table class="rows-table">
-                <thead>
-                    <tr>
-                        <th scope="col" class="col-row">Row</th>
-                        <th scope="col">Comment</th>
-                        <th scope="col" class="col-label">Sentiment</th>
+            {# Explicit roles keep table semantics when the phone layout restyles rows as cards. #}
+            <table class="rows-table" role="table" aria-labelledby="table-title">
+                <thead role="rowgroup">
+                    <tr role="row">
+                        <th scope="col" role="columnheader" class="col-row">Row</th>
+                        <th scope="col" role="columnheader">Comment</th>
+                        <th scope="col" role="columnheader" class="col-label">Sentiment</th>
                     </tr>
                 </thead>
-                <tbody id="rows"></tbody>
+                <tbody id="rows" role="rowgroup"></tbody>
             </table>
         </div>
+
+        <nav class="pager" id="pager" aria-label="Result pages" hidden>
+            <button type="button" class="btn-erase" id="page-prev">Previous</button>
+            <p class="pager-status" id="page-status" aria-live="polite"></p>
+            <button type="button" class="btn-erase" id="page-next">Next</button>
+        </nav>
     </section>
 </form>
 {% endblock %}

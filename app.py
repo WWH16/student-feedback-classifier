@@ -17,8 +17,10 @@ app = Flask(__name__)
 MAX_FEEDBACK_CHARS = 2000
 MAX_UPLOAD_MB = 10
 MAX_BATCH_ROWS = 20000
-PREVIEW_ROWS = 500
-COLUMN_HINTS = ("comment", "feedback", "text", "review", "remark", "response")
+PLACEHOLDER_NOTE = (
+    'Placeholder rule, not the trained model. '
+    'Add models/svm_model.pkl and models/tfidf_vectorizer.pkl to use the study model.'
+)
 
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_MB * 1024 * 1024
 
@@ -27,7 +29,7 @@ warm_up()
 
 @app.context_processor
 def inject_model_state():
-    return {'model_ready': model_available()}
+    return {'model_ready': model_available(), 'placeholder_note': PLACEHOLDER_NOTE}
 
 
 @app.route('/')
@@ -38,7 +40,10 @@ def index():
 @app.route('/batch')
 def batch():
     return render_template(
-        'batch.html', max_upload_mb=MAX_UPLOAD_MB, max_rows=MAX_BATCH_ROWS, preview_rows=PREVIEW_ROWS
+        'batch.html',
+        max_upload_mb=MAX_UPLOAD_MB,
+        max_upload_bytes=MAX_UPLOAD_MB * 1024 * 1024,
+        max_rows=MAX_BATCH_ROWS,
     )
 
 
@@ -89,29 +94,6 @@ def _read_upload():
     return frame
 
 
-def _suggest_column(frame):
-    for hint in COLUMN_HINTS:
-        for column in frame.columns:
-            if hint in str(column).lower():
-                return column
-    # Otherwise pick the column with the longest average text.
-    lengths = {column: frame[column].str.len().mean() for column in frame.columns}
-    return max(lengths, key=lengths.get)
-
-
-@app.post('/api/batch/inspect')
-def api_batch_inspect():
-    try:
-        frame = _read_upload()
-    except CsvError as error:
-        return jsonify(error=str(error)), 400
-    return jsonify(
-        columns=[str(column) for column in frame.columns],
-        suggested=str(_suggest_column(frame)),
-        rows=len(frame),
-    )
-
-
 @app.post('/api/batch')
 def api_batch():
     try:
@@ -119,29 +101,27 @@ def api_batch():
     except CsvError as error:
         return jsonify(error=str(error)), 400
 
-    column = request.form.get('column', '')
-    if column not in frame.columns:
+    # The page sends the column position, which stays exact for blank or duplicate header names.
+    position = request.form.get('column', '')
+    if not position.isdigit() or int(position) >= len(frame.columns):
         return jsonify(error='Pick the column that holds the comments.'), 400
+    column = frame.columns[int(position)]
 
-    texts = [value.strip() for value in frame[column].tolist()]
+    texts = [value.strip() for value in frame.iloc[:, int(position)].tolist()]
     result = classify_batch(texts)
     labels = result['labels']
 
     counts = {label: labels.count(label) for label in LABELS}
     skipped = labels.count(None)
 
-    preview = [
-        {'row': i + 1, 'comment': texts[i], 'label': labels[i]}
-        for i in range(min(len(texts), PREVIEW_ROWS))
-    ]
-
     return jsonify(
-        column=column,
+        column=str(column),
         rows=len(texts),
         classified=len(texts) - skipped,
         skipped=skipped,
         counts=counts,
-        preview=preview,
+        # Every row as [comment, label]; the page shows them 100 at a time.
+        items=[[text, label] for text, label in zip(texts, labels)],
         placeholder=result['placeholder'],
         timing=result['timing'],
     )
