@@ -178,7 +178,7 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
 
             const item = items.find((entry) => entry.dataset.label === data.label);
             if (!item) {
-                setResult('error', 'The classifier returned an unknown class. Check the server log.');
+                setResult('error', 'The classifier returned an unknown class. Check the terminal where the app is running.');
                 return;
             }
 
@@ -195,7 +195,7 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
             setReveal([result, timing], 'run');
         } catch (error) {
             if (error.name === 'AbortError') return;
-            setResult('error', 'Could not reach the classifier. Check that the Flask server is running, then try again.');
+            setResult('error', 'Could not reach the classifier. Check that the app is running (python app.py), then try again.');
         } finally {
             if (pending !== controller) return;
             pending = null;
@@ -279,7 +279,7 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
     async function postForm(url, body, signal) {
         const response = await fetch(url, { method: 'POST', body, signal });
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'The server could not read this file. Try again.');
+        if (!response.ok) throw new Error(data.error || 'The app could not read this file. Try again.');
         return data;
     }
 
@@ -429,7 +429,7 @@ const PLACEHOLDER_NOTE = 'Placeholder rule, not the trained model. Add models/sv
         } catch (error) {
             if (error.name === 'AbortError') return;
             setError(error.message === 'Failed to fetch'
-                ? 'Could not reach the classifier. Check that the Flask server is running, then try again.'
+                ? 'Could not reach the classifier. Check that the app is running (python app.py), then try again.'
                 : error.message);
         } finally {
             if (pending === controller) {

@@ -1,6 +1,6 @@
-{# Server-side processing time. Filled by main.js from the API "timing" object. #}
+{# Processing time measured by the Python app. Filled by main.js from the API "timing" object. #}
 <section class="timing" data-timing hidden aria-labelledby="timing-title-{{ timing_id|default('single') }}">
-    <h3 class="timing-title" id="timing-title-{{ timing_id|default('single') }}">Processing time <span>measured on the server</span></h3>
+    <h3 class="timing-title" id="timing-title-{{ timing_id|default('single') }}">Processing time <span>measured by the app</span></h3>
     <dl class="timing-grid">
         <div class="timing-cell">
             <dt>Preprocessing</dt>

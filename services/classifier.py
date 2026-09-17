@@ -8,7 +8,7 @@ When the model files are missing, a placeholder keyword rule stands in so the UI
 can still be demonstrated. The placeholder is NOT the research model and must never be
 reported as its output.
 
-Every result carries server-side timings in milliseconds:
+Every result carries processing timings in milliseconds:
     - preprocess_ms: text cleaning (services.preprocessing)
     - model_ms:      TF-IDF transform + SVM predict (or the placeholder rule)
     - total_ms:      preprocess_ms + model_ms

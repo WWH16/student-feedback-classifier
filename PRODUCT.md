@@ -28,12 +28,12 @@ Local/research-tool usage, not a public multi-tenant deploy. Single feedback flo
 
 ## Capabilities and Constraints
 
-- Single Feedback backend uses the trained model artifacts (`models/svm_model.pkl`, `models/tfidf_vectorizer.pkl`) and the training preprocessing pipeline (`services/preprocessing.py`). The artifacts are git-ignored and must be copied in locally.
+- Single Feedback backend uses the trained model artifacts (`models/svm_model.pkl`, `models/tfidf_vectorizer.pkl`) and the training preprocessing pipeline (`services/preprocessing.py`). The artifacts are committed in `models/`.
 - If the artifacts are missing, the backend falls back to a keyword placeholder and the UI labels it as not the trained model.
 - The model is a linear `SVC` without probability estimates, so there is no real confidence score to show.
 - Input that is empty after preprocessing (only stopwords or punctuation) is rejected with an error, not classified.
 - Batch classification is built. Rows that are blank or empty after preprocessing are reported as not classified.
-- Both flows show server-side processing time (preprocessing, model, total; batch adds per comment). These are measured timings, not accuracy claims.
+- Both flows show processing time measured by the app (preprocessing, model, total; batch adds per comment). These are measured timings, not accuracy claims.
 - Sentiment colors: Positive green, Neutral slate, Negative red; form ink is deep blue so red only signals Negative or errors. Color is always paired with a text label.
 - Sentiment classes are fixed: Positive, Neutral, Negative.
 

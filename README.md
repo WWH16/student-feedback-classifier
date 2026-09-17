@@ -12,7 +12,7 @@ This project serves as a research prototype demonstrating how the best-performin
 
 - **Single feedback classification** works and uses the trained SVM model.
 - **Batch classification** works: upload a CSV (up to 10 MB and 20,000 rows), pick the comment column, and get a sentiment tally, and a results table (first 500 rows shown).
-- **Processing time** is shown for both modes. It is measured on the server with `time.perf_counter()` and split into preprocessing, model (TF-IDF transform + SVM predict), and total. Batch also shows the average time per classified comment. Model files and NLTK data are loaded when the app starts, so the first request is not slowed by disk loading.
+- **Processing time** is shown for both modes. The app measures it in Python with `time.perf_counter()` and split into preprocessing, model (TF-IDF transform + SVM predict), and total. Batch also shows the average time per classified comment. Model files and NLTK data are loaded when the app starts, so the first request is not slowed by disk loading.
 - **Responsive layout** for phones, tablets, and desktops, including touch-sized controls, phone landscape, and notched screens.
 - **Color coding by sentiment:** Positive is green, Neutral is slate gray, and Negative is red. The form itself uses deep blue, so red appears only for Negative results and errors. Every color also has a text label.
 
@@ -25,7 +25,7 @@ This project serves as a research prototype demonstrating how the best-performin
 
 ## Machine Learning Model
 
-The trained model and vectorizer come from the research/model-training environment. They are not committed to the repository (see `.gitignore`), so copy them into the `models/` directory before running the app:
+The trained model and vectorizer come from the research/model-training environment and are committed in the `models/` directory:
 
 - `models/svm_model.pkl`: trained Support Vector Machine (`SVC`, linear kernel, `class_weight="balanced"`)
 - `models/tfidf_vectorizer.pkl`: fitted TF-IDF vectorizer (`max_features=5000`, `ngram_range=(1, 2)`)
@@ -70,8 +70,8 @@ student-feedback-classifier/
 │
 ├── models/
 │   ├── .gitkeep
-│   ├── svm_model.pkl          (not committed)
-│   └── tfidf_vectorizer.pkl   (not committed)
+│   ├── svm_model.pkl
+│   └── tfidf_vectorizer.pkl
 │
 ├── services/
 │   ├── __init__.py

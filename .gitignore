@@ -28,5 +28,3 @@ uploads/*
 !uploads/.gitkeep
 .claude
 .impeccable
-models/svm_model.pkl
-models/tfidf_vectorizer.pkl
